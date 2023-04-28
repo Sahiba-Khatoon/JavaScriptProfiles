@@ -1,75 +1,108 @@
+<?php 
+
+    require_once "pdo.php";
+    session_start();
+
+    if (isset($_POST['cancel'])) {
+        header("Location: index.php");
+        return;
+    }
+
+    if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])  ) {
+        if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['email']) || empty($_POST['headline']) || empty($_POST['summary'])) {
+            $_SESSION['error'] = "All fields are required";
+            header("Location: edit.php?profile_id=".$_GET['profile_id']);
+            return;
+        }
+
+        if (strpos($_POST['email'], "@") == false) {
+            $_SESSION['error'] = "Invalid email address";
+            header("Location: edit.php?profile_id=".$_GET['profile_id']);
+            return; 
+        }
+
+        // $sql = "INSERT INTO profile (user_id, first_name, last_name, email, headline, summary) VALUES (:uid, :fn, :ln, :em, :he, :su)";
+
+        $sql = "UPDATE profile SET first_name = :fn, last_name = :ln, email = :em , headline = :he, summary = :su WHERE profile_id = :pi";
+
+        $statement = $pdo->prepare($sql);
+
+        $statement->execute(array(
+            ":fn" => $_POST['first_name'],
+            ":ln" => $_POST['last_name'],
+            ":em" => $_POST['email'],
+            ":he" => $_POST['headline'],
+            ":su" => $_POST['summary'],
+            ":pi" => $_GET['profile_id']
+        ));
+
+        $_SESSION['success'] = "Profile updated";
+        header("Location: index.php");
+        return;
+
+    }
+    
+    if (!isset($_GET['profile_id'])) {
+        $_SESSION['error'] = "Could not load profile";
+        header("Location: index.php");
+        return;
+    }
+    
+    $statement = $pdo->prepare("SELECT * FROM profile WHERE profile_id = :profile_id");
+    
+    $statement->execute(array(
+        ":profile_id" => $_GET["profile_id"],
+    ));
+
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+    if ($row == false) {
+        $_SESSION['error'] = "Could not load profile";
+        header("Location: index.php");
+        return;
+    }
+
+    $first_name = htmlentities($row["first_name"]);
+    $last_name = htmlentities($row["last_name"]);
+    $email = htmlentities($row["email"]);
+    $headline = htmlentities($row["headline"]);
+    $summary = htmlentities($row["summary"]);
+?>
 <!DOCTYPE html>
 <html>
 
-<head>
-    <title>9dc0a5e5</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
-        integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
-
-</head>
-
-<?php 
-    require "pdo.php";
-
-    session_start();
-
-?>
-
 <body>
-    <h1>Alan Dsilva's Resume Registry</h1>
 
-    <?php
-        if (isset($_SESSION['success'])) {
-            echo "<p style='color: green'>".$_SESSION['success']."</p>";
-            unset($_SESSION['success']);
+    <h1>Editing Profile for <?php if (isset($_SESSION['name'])) {
+        echo $_SESSION['name']; 
+    } ?> </h1>
+
+    <?php 
+        if (isset($_SESSION['error'])) {
+            echo "<p style='color: red'>".$_SESSION['error']."</p>";
+            unset($_SESSION['error']);
         }
-        if ( isset($_SESSION['name'])) {
-            echo "<a href='logout.php'>Logout</a><br />";
-           
-        } else {
-            echo "<a href='login.php'>Please log in</a>";
-        }
-
-        $statement = $pdo->query("SELECT * FROM profile");
-
-        $row = $statement->fetch(PDO::FETCH_ASSOC);
-
-        if ($row != false) {
-
-            $statement = $pdo->query("SELECT * FROM profile");
-            
-            echo "<table border='1'>
-            <tbody>
-            <tr> 
-            <th>Name</th>
-            <th>Headline</th>";
-
-            if (isset($_SESSION['name'])) {
-                echo "<th>Action</th>";
-            }
-            
-            echo "</tr>";
-            while ( $row = $statement->fetch(PDO::FETCH_ASSOC)) {
-                echo "<tr>";
-                echo "<td>".$row['first_name']." ".$row['last_name']."</td>";
-                echo "<td>".$row['email']."</td>";
-                if (isset($_SESSION['name'])) {
-                    echo "<td>
-                        <a href='edit.php?profile_id=".$row['profile_id']."'>Edit </a>
-                        <a href='delete.php?profile_id=".$row['profile_id']."'>Delete</a>
-                    </td>";
-                }
-                echo "</tr>";
-            }
-            echo "</tbody></table>";
-        }
-        
-
-        if ( isset($_SESSION['name'])) {
-            echo "<a href='add.php'>Add New Entry</a>";
-        } 
-
     ?>
+
+    <form method="POST">
+        <p>
+            First Name: <input type="text" name="first_name" value="<?= $first_name; ?>" />
+        </p>
+        <p>
+            Last Name: <input type="text" name="last_name" value="<?= $last_name; ?>" />
+        </p>
+        <p>
+            Email: <input type="text" name="email" value="<?= $email; ?>" />
+        </p>
+        <p>
+            Headline: <input type="text" name="headline" value="<?= $headline; ?>" />
+        </p>
+        <p>
+            Summary: <textarea name="summary" rows="8" cols="80"><?= $summary; ?></textarea>
+        </p>
+        <input type="submit" name="submit" value="Save" />
+        <input type="submit" name="cancel" value="Cancel" />
+    </form>
 </body>
 
 </html>
