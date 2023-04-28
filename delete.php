@@ -38,7 +38,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ambika Patidar's Resume Registry</title>
+    <title>Sahiba Khatoon</title>
 
     <?php require_once "bootstrap.php"; ?>
 
